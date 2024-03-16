@@ -23,6 +23,10 @@ class Book implements Serializable {
         return author;
     }
 
+    public String placeHold() {
+        return title;
+    }
+
     public boolean isAvailable() {
         return isAvailable;
     }
