@@ -1,13 +1,30 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.ArrayList;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import javax.persistence.*;
+import java.util.List;
 
-class Book implements Serializable {
+@SpringBootApplication
+public class LibraryManagementSystemApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(LibraryManagementSystemApplication.class, args);
+    }
+}
+
+@Entity
+class Book {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String title;
     private String author;
     private boolean isAvailable;
+
+    public Book() {}
 
     public Book(String title, String author) {
         this.title = title;
@@ -15,171 +32,81 @@ class Book implements Serializable {
         this.isAvailable = true;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String placeHold() {
-        return title;
-    }
-
-    public boolean isAvailable() {
-        return isAvailable;
-    }
-
-    public void setAvailable(boolean available) {
-        isAvailable = available;
-    }
+    // Getters and setters
 }
 
-class User implements Serializable {
+@Entity
+class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String username;
     private String password;
+
+    public User() {}
 
     public User(String username, String password) {
         this.username = username;
         this.password = password;
     }
 
-    public String getUsername() {
-        return username;
+    // Getters and setters
+}
+
+@Repository
+interface BookRepository extends JpaRepository<Book, Long> {}
+
+@Repository
+interface UserRepository extends JpaRepository<User, Long> {}
+
+@Service
+class LibraryService {
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public List<Book> getAllBooks() {
+        return bookRepository.findAll();
     }
 
-    public String getPassword() {
-        return password;
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public Book addBook(Book book) {
+        return bookRepository.save(book);
+    }
+
+    public User addUser(User user) {
+        return userRepository.save(user);
     }
 }
 
-class Library implements Serializable {
-    private ArrayList<Book> books;
-    private ArrayList<User> users;
+@RestController
+@RequestMapping("/api")
+class LibraryController {
+    @Autowired
+    private LibraryService libraryService;
 
-    public Library() {
-        books = new ArrayList<>();
-        users = new ArrayList<>();
+    @GetMapping("/books")
+    public List<Book> getAllBooks() {
+        return libraryService.getAllBooks();
     }
 
-    public void addBook(Book book) {
-        books.add(book);
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return libraryService.getAllUsers();
     }
 
-    public void addUser(User user) {
-        users.add(user);
+    @PostMapping("/books")
+    public Book addBook(@RequestBody Book book) {
+        return libraryService.addBook(book);
     }
 
-    public ArrayList<Book> getBooks() {
-        return books;
-    }
-
-    public ArrayList<User> getUsers() {
-        return users;
-    }
-}
-
-public class LibraryManagementSystem extends JFrame {
-    private Library library;
-    private JTextArea displayArea;
-    private JTextField usernameField, passwordField, bookTitleField, bookAuthorField;
-
-    public LibraryManagementSystem() {
-        super("Library Management System");
-        library = new Library();
-
-        // Sample books and users
-        library.addBook(new Book("Java Programming", "John Doe"));
-        library.addBook(new Book("Data Structures", "Jane Smith"));
-        library.addUser(new User("user1", "password1"));
-        library.addUser(new User("user2", "password2"));
-
-        // GUI Components
-        JPanel panel = new JPanel(new BorderLayout());
-
-        // Login Panel
-        JPanel loginPanel = new JPanel(new GridLayout(3, 2));
-        loginPanel.add(new JLabel("Username:"));
-        usernameField = new JTextField();
-        loginPanel.add(usernameField);
-        loginPanel.add(new JLabel("Password:"));
-        passwordField = new JPasswordField();
-        loginPanel.add(passwordField);
-        JButton loginButton = new JButton("Login");
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                login();
-            }
-        });
-        loginPanel.add(loginButton);
-        panel.add(loginPanel, BorderLayout.NORTH);
-
-        // Book Management Panel
-        JPanel bookPanel = new JPanel(new GridLayout(3, 2));
-        bookPanel.add(new JLabel("Title:"));
-        bookTitleField = new JTextField();
-        bookPanel.add(bookTitleField);
-        bookPanel.add(new JLabel("Author:"));
-        bookAuthorField = new JTextField();
-        bookPanel.add(bookAuthorField);
-        JButton addBookButton = new JButton("Add Book");
-        addBookButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addBook();
-            }
-        });
-        bookPanel.add(addBookButton);
-        panel.add(bookPanel, BorderLayout.CENTER);
-
-        // Display Area
-        displayArea = new JTextArea(20, 50);
-        displayArea.setEditable(false);
-        panel.add(new JScrollPane(displayArea), BorderLayout.SOUTH);
-
-        add(panel);
-        setSize(600, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setVisible(true);
-    }
-
-    private void login() {
-        String username = usernameField.getText();
-        String password = passwordField.getText();
-        for (User user : library.getUsers()) {
-            if (user.getUsername().equals(username) && user.getPassword().equals(password)) {
-                displayBooks();
-                return;
-            }
-        }
-        JOptionPane.showMessageDialog(this, "Invalid username or password.");
-    }
-
-    private void addBook() {
-        String title = bookTitleField.getText();
-        String author = bookAuthorField.getText();
-        library.addBook(new Book(title, author));
-        displayBooks();
-        JOptionPane.showMessageDialog(this, "Book added successfully.");
-    }
-
-    private void displayBooks() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Books in Library:\n");
-        for (Book book : library.getBooks()) {
-            sb.append("Title: ").append(book.getTitle()).append(", Author: ").append(book.getAuthor());
-            if (book.isAvailable()) {
-                sb.append(" (Available)\n");
-            } else {
-                sb.append(" (Not Available)\n");
-            }
-        }
-        displayArea.setText(sb.toString());
-    }
-
-    public static void main(String[] args) {
-        new LibraryManagementSystem();
+    @PostMapping("/users")
+    public User addUser(@RequestBody User user) {
+        return libraryService.addUser(user);
     }
 }
